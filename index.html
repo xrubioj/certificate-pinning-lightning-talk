@@ -1,0 +1,341 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>Lightning talk: certificate pinning 101</title>
+
+		<link rel="stylesheet" href="reveal.js/css/reveal.css">
+		<link rel="stylesheet" href="reveal.js/css/theme/black.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="reveal.js/lib/css/zenburn.css">
+		<link rel="stylesheet" href="css/zenburn-nohighlight.css">
+
+		<!-- FontAwesome http://fontawesome.io/examples/ and http://fontawesome.io/icons/ -->
+		<link rel="stylesheet" href="font-awesome-4.7.0/css/font-awesome.min.css">
+
+		<style>
+			.reveal h1,
+			.reveal h2 {
+				text-transform: none !important;
+				font-variant-caps: small-caps !important;
+			}
+			.reveal .column {
+				float: left;
+				width: 50%;
+				padding-left: 0;
+				padding-right: 0;
+			}
+			.reveal .small-column-left {
+				float: left;
+				width: 30%;
+			}
+			.reveal .big-column-right {
+				float: left;
+				width: 58%;
+				padding-left: 5% !important;
+			}
+			.reveal .big-column-left {
+				float: left;
+				width: 68%;
+			}
+			.reveal .small-column-right {
+				float: left;
+				width: 20%;
+				padding-left: 5% !important;
+				text-align: left;
+			}
+			.reveal .left {
+				text-align: left;
+				width: 90%;
+			}
+			.reveal .join-with-previous {
+				margin-top: -0.8em;
+			}
+		</style>
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+
+				<section style="font-size: 0.8em">
+					<h1>Certificate pinning 101</h1>
+					<h2>Lightning talk</h2>
+					<p>Xavier Rubio Jansana</p>
+					<p style="font-size: 0.8em">
+						<a href="https://twitter.com/teknik_tdr"><i class="fa fa-twitter" aria-hidden="true"></i>&nbsp;@teknik_tdr</a><br>
+						<a href="https://xrubio.com"><i class="fa fa-globe" aria-hidden="true"></i>&nbsp;https://xrubio.com</a><br>
+						<a href="https://github.com/xrubioj/"><i class="fa fa-github" aria-hidden="true"></i>&nbsp;https://github.com/xrubioj/</a>
+					</p>
+				</section>
+
+				<section>
+					<h1>Summary</h1>
+					<ul>
+						<li>What?</li>
+						<li>Why?</li>
+						<li>How SSL/TLS works</li>
+						<li>MiTM Attacks</li>
+						<li>Certificate pinning 101</li>
+						<li>Security considerations</li>
+					</ul>
+				</section>
+
+				<section>
+					<h1>What?</h1>
+					<p class="fragment">Network security technique</p>
+				</section>
+
+				<section data-background="#aa1111">
+					<h1>Why?</h1>
+					<p class="fragment">Avoid MiTM attacks 😱</p>
+				</section>
+
+				<section>
+					<h2>Implications</h2>
+					<ul>
+						<li class="fragment">Stealing app secrets</li>
+						<li class="fragment">Stealing user secrets</li>
+						<li class="fragment">Subverting communication<br>
+							(e.g. change delivery address)</li>
+					</ul>
+				</section>
+
+				<section>
+					<h1>How SSL/TLS works</h1>
+				</section>
+
+				<section>
+					<h2>HTTPS Connection</h2>
+				</section>
+
+				<section>
+					<h2>Certificate</h2>
+					<img src="img/certificate-example.png" class="fragment">
+				</section>
+
+				<section>
+					<h2>Certificate</h2>
+					<img src="img/certificate-example-detail.png" class="fragment" style="width: 50%">
+				</section>
+
+				<section>
+					<h2>Certificate vs Signature</h2>
+					<p class="fragment">Subject Public Key Info</p>
+				</section>
+
+				<section>
+					<h2>Certificate name validation</h2>
+				</section>
+
+				<section>
+					<h2>Certificate chain validation</h2>
+					<img src="img/certificate-chain.png" class="fragment">
+				</section>
+
+				<section>
+					<h2>Root CAs</h2>
+					<div class="column">
+						<img src="img/root-cas.png" class="fragment" style="width: 60%">
+					</div>
+					<div class="column">
+						<ul>
+							<li class="fragment">Settings → Security → Trusted certificates</li>
+							<li class="fragment">System vs User</li>
+						</ul>
+					</div>
+				</section>
+
+				<section>
+					<h1>MiTM Attacks</h1>
+					<ul>
+						<li class="fragment">Root CA injection 😈</li>
+						<li class="fragment">CA insuficient validation → rogue certificate 😐</li>
+						<li class="fragment">Self-signed certificates → validation disabled 🚨😅</li>
+					</ul>
+				</section>
+
+				<section>
+					<h1>Certificate pinning 101</h1>
+				</section>
+
+				<section>
+					<h2>OkHttp</h2>
+					<pre><code class="kotlin" data-trim data-noescape style="font-size: 0.82em">
+					val hostname = "*.google.com"
+					val certificatePinner = CertificatePinner.Builder()
+					      .add(hostname, "sha256/<mark class="fragment" style="position: absolute">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</mark>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+					      .build()
+					val client = OkHttpClient.Builder()
+					      .certificatePinner(certificatePinner)
+					      .build()
+					</code></pre>
+					<div class="fragment">
+						<small>Exception:</small>
+						<pre class="join-with-previous" style="font-size: 0.40em; width: inherit">
+javax.net.ssl.SSLPeerUnverifiedException: Certificate pinning failure!
+   Peer certificate chain:
+     sha256/<mark class="fragment" style="position: absolute">afwiKY3RxoMmLkuRW1l7QsPZTJPwDS2pdDROQjXw8ig=</mark>afwiKY3RxoMmLkuRW1l7QsPZTJPwDS2pdDROQjXw8ig=: CN=publicobject.com, OU=PositiveSSL
+     sha256/klO23nT2ehFDXCfx3eHTDRESMz3asj1muO+4aIdjiuY=: CN=COMODO RSA Secure Server CA
+     sha256/grX4Ta9HpZx6tSHkmCrvpApTQGo67CYDnvprLg5yRME=: CN=COMODO RSA Certification Authority
+     sha256/lCppFqbkrlJ3EcVFAkeip0+44VaoJUymbnOaEUk7tEU=: CN=AddTrust External CA Root
+   Pinned certificates for publicobject.com:
+     sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+   at okhttp3.CertificatePinner.check(CertificatePinner.java)
+   at okhttp3.Connection.upgradeToTls(Connection.java)
+   at okhttp3.Connection.connect(Connection.java)
+   at okhttp3.Connection.connectAndSetOwner(Connection.java)</pre>
+   					</div>
+
+					<aside class="notes">
+						<ul>
+							<li>Different pins are <b>alternatives</b></li>
+						</ul>
+					</aside>
+				</section>
+
+				<section>
+					<h2>Android N</h2>
+					<pre><code class="xml" data-trim data-noescape style="font-size: 0.72em">
+						&lt;?xml version="1.0" encoding="utf-8"?&gt;
+						&lt;network-security-config&gt;
+						    &lt;domain-config&gt;
+						        &lt;domain includeSubdomains="true"&gt;appmattus.com&lt;/domain&gt;
+						        &lt;pin-set&gt;
+						            &lt;pin digest="SHA-256"&gt;4hw5tz+scE+TW+mlai5YipDfFWn1dqvfLG+nU7tq1V8=&lt;/pin&gt;
+						            &lt;pin digest="SHA-256"&gt;YLh1dUR9y6Kja30RrAn7JKnbQG/uEtLMkBgFF2Fuihg=&lt;/pin&gt;
+						        &lt;/pin-set&gt;
+						    &lt;/domain-config&gt;
+						&lt;/network-security-config&gt;
+					</code></pre>
+					<div class="fragment">
+						<small>AndroidManifest.xml:</small>
+						<pre class="join-with-previous"><code class="xml" data-trim data-noescape style="font-size: 0.82em">
+							&lt;?xml version="1.0" encoding="utf-8"?&gt;
+							&lt;manifest&gt;
+							    &lt;application
+							        <mark class="fragment" style="position: absolute;">android:networkSecurityConfig="@xml/network_security_config"</mark>android:networkSecurityConfig="@xml/network_security_config"&gt;
+							        &lt;!-- ... --&gt;
+							    &lt;/application&gt;
+							&lt;/manifest&gt;
+						</code></pre>
+					</div>
+
+					<aside class="notes">
+						<ul>
+							<li>Enforce disallowing cleartext communication</li>
+							<li>Enforce using only System certificates</li>
+							<li>Different pins are <b>alternatives</b></li>
+						</ul>
+					</aside>
+				</section>
+
+				<section>
+					<h2>Backport</h2>
+					<p>CWAC-NetSecurity
+						<a src="https://github.com/commonsguy/cwac-netsecurity">https://github.com/commonsguy/cwac-netsecurity</a></p>
+					<blockquote>"Allows the same XML configuration to be used, going back to API Level 17 (Android 4.2)"</blockquote>
+					<p class="fragment">With some manual work... 🤷‍♂️</p>
+				</section>
+
+				<section>
+					<h2>How to react</h2>
+					<ul>
+						<li class="fragment">Hard failure</li>
+						<li class="fragment">Soft failure</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Strategies</h2>
+					<ul>
+						<li class="fragment">Hardcoded pins</li>
+						<li class="fragment">Accept on first access</li>
+						<li class="fragment">Get pins from server<span class="fragment"> → inception! 🙃</span></li>
+					</ul>
+				</section>
+
+				<section>
+					<h1>Security considerations</h1>
+					<p class="fragment">⚠️ Hide your secrets!</p>
+					<p class="fragment">See "Android security basics" talk by Krzysztof Kocel
+						<a src="https://www.meetup.com/Barcelona-Android-Developer-Group/events/244107028/">https://www.meetup.com/Barcelona-Android-Developer-Group/events/244107028/</a></p>
+				</section>
+
+				<section>
+					<h1>References</h1>
+					<ul style="font-size: 0.8em">
+						<li>
+							"Android Security: SSL Pinning" by Matthew Dolan
+							<a href="https://medium.com/@appmattus/android-security-ssl-pinning-1db8acb6621e">
+							https://medium.com/@appmattus/android-security-ssl-pinning-1db8acb6621e</a>
+						</li>
+						<li>
+							Network Security Configuration
+							<a href="https://developer.android.com/training/articles/security-config.html">
+							https://developer.android.com/training/articles/security-config.html</a>
+						</li>
+						<li>
+							"CWAC-NetSecurity: Simplifying Secure Internet Access" by CommonsWare
+							<a href="https://github.com/commonsguy/cwac-netsecurity">
+							https://github.com/commonsguy/cwac-netsecurity</a>
+						</li>
+						<li>
+							CertificatePinner class OkHttp documentation
+							<a href="https://square.github.io/okhttp/3.x/okhttp/okhttp3/CertificatePinner.html">
+							https://square.github.io/okhttp/3.x/okhttp/okhttp3/CertificatePinner.html</a>
+						</li>
+					</ul>
+				</section>
+
+				<section>
+					<h1>Questions? 🤔</h1>
+				</section>
+
+				<section>
+					<h1>Thanks! 🎉</h1>
+					<p>Xavier Rubio Jansana</p>
+					<p style="font-size: 0.8em">
+						<a href="https://twitter.com/teknik_tdr"><i class="fa fa-twitter" aria-hidden="true"></i>&nbsp;@teknik_tdr</a><br>
+						<a href="https://xrubio.com"><i class="fa fa-globe" aria-hidden="true"></i>&nbsp;https://xrubio.com</a><br>
+						<a href="https://github.com/xrubioj/"><i class="fa fa-github" aria-hidden="true"></i>&nbsp;https://github.com/xrubioj/</a>
+					</p>
+					<p style="line-height: 0.6em"><small>This talk is available at:</small><br>
+						<a href="https://xrubio.com/talks/talk-lightning-certificate-pinning/" style="font-size: 0.6em">
+						https://xrubio.com/talks/talk-lightning-certificate-pinning/</a>
+					</p>
+				</section>
+
+			</div>
+		</div>
+
+		<script src="reveal.js/lib/js/head.min.js"></script>
+		<script src="reveal.js/js/reveal.js"></script>
+
+		<script>
+			// More info https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				history: true,
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
+				dependencies: [
+					{ src: 'reveal.js/plugin/markdown/marked.js' },
+					{ src: 'reveal.js/plugin/markdown/markdown.js' },
+					{ src: 'reveal.js/plugin/notes/notes.js', async: true },
+					{ src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+		</script>
+	</body>
+</html>
